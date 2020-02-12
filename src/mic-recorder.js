@@ -1,12 +1,10 @@
-import Encoder from './encoder';
-import WavEncoder from './newecoder';
+import WavEncoder from './wav-encoder';
 
 class MicRecorder {
   constructor(config) {
     this.config = {
       // 128 or 160 kbit/s – mid-range bitrate quality
       bitRate: 128,
-
       // There is a known issue with some macOS machines, where the recording
       // will sometimes have a loud 'pop' or 'pop-click' sound. This flag
       // prevents getting audio from the microphone a few milliseconds after
@@ -91,8 +89,7 @@ class MicRecorder {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     this.context = new AudioContext({sampleRate: 16000});
     this.config.sampleRate = this.context.sampleRate;
-   // this.lameEncoder = new Encoder(this.config);
-
+ 
     this.wavEncoder = new WavEncoder()
 
     const audio = this.config.deviceId ? { deviceId: { exact: this.config.deviceId } } : true;
@@ -109,13 +106,11 @@ class MicRecorder {
   };
 
   /**
-   * Return Mp3 Buffer and Blob with type mp3
+   * Return Wav Buffer and Blob with type mp3
    * @return {Promise}
    */
-  getMp3() {
+  getWav() {
     const finalBlob = this.wavEncoder.finish();
-
-      console.log("finalBlob",finalBlob)
     return new Promise((resolve, reject) => {
       if (!finalBlob) {
         reject(new Error('No buffer to send'));

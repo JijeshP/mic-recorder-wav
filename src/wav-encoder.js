@@ -4,24 +4,12 @@
       sampleRate: 44100,
       bitRate: 128
     };
-
-   
-
-    //Object.assign(this.config, config);
-
-    // this.mp3Encoder = new Mp3Encoder(
-    // 1,
-    //   this.config.sampleRate,
-    //   this.config.bitRate
-    // );
-
+    
     this.sampleRate = 16000;
     this.numChannels = 1;
     this.numSamples = 0;
     this.dataViews = [];
-
-     console.log("dataViews-----------",this.dataViews)
-
+ 
     // Audio is processed by frames of 1152 samples per audio channel
     // http://lame.sourceforge.net/tech-FAQ.txt
     this.maxSamples = 1152;
@@ -37,7 +25,7 @@
   };
    
   encode(buffer) {
-    console.log("buffer------",buffer)
+     
      var len = buffer[0].length,
         nCh = this.numChannels,
         view = new DataView(new ArrayBuffer(len * nCh * 2)),
@@ -56,13 +44,7 @@
  
   cleanup(){
     this.dataBuffer = [];
-   // delete this.dataViews;
-  
   }
-
-  /**
-   * Return full dataBuffer
-   */
 
   floatTo16BitPCM(input, output) {
     for (let i = 0; i < input.length; i++) {
@@ -71,7 +53,6 @@
     }
   }
    convertBuffer(arrayBuffer) {
-     console.log("arrayBuffer---",arrayBuffer)
     const data = new Float32Array(arrayBuffer);
     const out = new Int16Array(arrayBuffer.length);
     this.floatTo16BitPCM(data, out);
@@ -95,12 +76,7 @@
     view.setUint16(34, 16, true);
     this.setString(view, 36, 'data');
     view.setUint32(40, dataSize, true);
-   // this.floatTo16BitPCM(view, 44, this.dataViews);
-    this.dataViews.unshift(view);
-    const newbuffer = this.convertBuffer(this.dataViews)
-    console.log("this.dataViews-----",this.dataViews)
-
-    
+    this.dataViews.unshift(view); 
     var blob = new Blob(this.dataViews, { type: 'audio/wav' });
     this.cleanup();
     return blob;
