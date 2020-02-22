@@ -46,10 +46,14 @@ class MicRecorder {
       if (this.timerToStart) {
         return;
       }
-        var buffers = [];
-        buffers[0] = event.inputBuffer.getChannelData(0);
+      var buffers = [];
+      buffers[0] = event.inputBuffer.getChannelData(0);
       // Send microphone data to LAME for MP3 encoding while recording.
-      this.wavEncoder.encode(buffers);
+      var newbuffer = [];
+      newbuffer[0] = this.downsampleBuffer(buffers[0], 16000)
+
+      this.wavEncoder.encode(newbuffer);
+
     };
 
     // Begin retrieving microphone data.
@@ -60,6 +64,39 @@ class MicRecorder {
   /**
    * Disconnect microphone, processor and remove activeStream
    */
+
+  downsampleBuffer(buffer, rate) {
+    let sampleRate = 41000
+    if (rate == sampleRate) {
+      return buffer;
+    }
+    if (rate > sampleRate) {
+      throw "downsampling rate show be smaller than original sample rate";
+    }
+    var sampleRateRatio = sampleRate / rate;
+
+    var newLength = Math.round(buffer.length / sampleRateRatio);
+
+    var result = new Float32Array(newLength);
+    var offsetResult = 0;
+    var offsetBuffer = 0;
+    while (offsetResult < result.length) {
+      var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+      // Use average value of skipped samples
+      var accum = 0,
+        count = 0;
+      for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+        accum += buffer[i];
+        count++;
+      }
+      result[offsetResult] = accum / count;
+      // Or you can simply get rid of the skipped samples:
+      // result[offsetResult] = buffer[nextOffsetBuffer];
+      offsetResult++;
+      offsetBuffer = nextOffsetBuffer;
+    }
+    return result;
+  }
   stop() {
     if (this.processor && this.microphone) {
       // Clean up the Web Audio API resources.
@@ -87,19 +124,26 @@ class MicRecorder {
    */
   start() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    this.context = new AudioContext({sampleRate: 16000});
+    //{sampleRate: 16000}
+    this.context = new AudioContext();
     this.config.sampleRate = this.context.sampleRate;
- 
+
     this.wavEncoder = new WavEncoder()
 
-    const audio = this.config.deviceId ? { deviceId: { exact: this.config.deviceId } } : true;
+    const audio = this.config.deviceId ? {
+      deviceId: {
+        exact: this.config.deviceId
+      }
+    } : true;
 
     return new Promise((resolve, reject) => {
-      navigator.mediaDevices.getUserMedia({ audio })
+      navigator.mediaDevices.getUserMedia({
+          audio
+        })
         .then(stream => {
           this.addMicrophoneListener(stream);
           resolve(stream);
-        }).catch(function(err) {
+        }).catch(function (err) {
           reject(err);
         });
     })

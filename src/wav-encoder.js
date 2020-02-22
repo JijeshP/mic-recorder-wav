@@ -1,15 +1,15 @@
- class WavEncoder {
+class WavEncoder {
   constructor(config) {
     this.config = {
       sampleRate: 44100,
       bitRate: 128
     };
-    
+
     this.sampleRate = 16000;
     this.numChannels = 1;
     this.numSamples = 0;
     this.dataViews = [];
- 
+
     // Audio is processed by frames of 1152 samples per audio channel
     // http://lame.sourceforge.net/tech-FAQ.txt
     this.maxSamples = 1152;
@@ -17,32 +17,32 @@
     this.samplesMono = null;
     this.cleanup();
   }
- 
-    setString(view, offset, str) {
+
+  setString(view, offset, str) {
     var len = str.length;
     for (var i = 0; i < len; ++i)
       view.setUint8(offset + i, str.charCodeAt(i));
   };
-   
+
   encode(buffer) {
-     
-     var len = buffer[0].length,
-        nCh = this.numChannels,
-        view = new DataView(new ArrayBuffer(len * nCh * 2)),
-        offset = 0;
+
+    var len = buffer[0].length,
+      nCh = this.numChannels,
+      view = new DataView(new ArrayBuffer(len * nCh * 2)),
+      offset = 0;
     for (var i = 0; i < len; ++i)
       for (var ch = 0; ch < nCh; ++ch) {
         var x = buffer[ch][i] * 0x7fff;
         view.setInt16(offset, x < 0 ? Math.max(x, -0x8000) : Math.min(x, 0x7fff), true);
         offset += 2;
       }
- 
+
     this.dataViews.push(view);
     this.numSamples += len;
   }
 
- 
-  cleanup(){
+
+  cleanup() {
     this.dataBuffer = [];
   }
 
@@ -52,7 +52,7 @@
       output[i] = (s < 0 ? s * 0x8000 : s * 0x7FFF);
     }
   }
-   convertBuffer(arrayBuffer) {
+  convertBuffer(arrayBuffer) {
     const data = new Float32Array(arrayBuffer);
     const out = new Int16Array(arrayBuffer.length);
     this.floatTo16BitPCM(data, out);
@@ -61,8 +61,8 @@
   }
 
   finish() {
-     var dataSize = this.numChannels * this.numSamples * 2,
-        view = new DataView(new ArrayBuffer(44));
+    var dataSize = this.numChannels * this.numSamples * 2,
+      view = new DataView(new ArrayBuffer(44));
     this.setString(view, 0, 'RIFF');
     view.setUint32(4, 36 + dataSize, true);
     this.setString(view, 8, 'WAVE');
@@ -76,8 +76,10 @@
     view.setUint16(34, 16, true);
     this.setString(view, 36, 'data');
     view.setUint32(40, dataSize, true);
-    this.dataViews.unshift(view); 
-    var blob = new Blob(this.dataViews, { type: 'audio/wav' });
+    this.dataViews.unshift(view);
+    var blob = new Blob(this.dataViews, {
+      type: 'audio/wav'
+    });
     this.cleanup();
     return blob;
   }
