@@ -50,9 +50,9 @@ class MicRecorder {
       buffers[0] = event.inputBuffer.getChannelData(0);
       // Send microphone data to LAME for MP3 encoding while recording.
       var newbuffer = [];
-      newbuffer[0] = this.downsampleBuffer(buffers[0], 16000)
+      // newbuffer[0] = this.downsampleBuffer(buffers[0], 16000)
 
-      this.wavEncoder.encode(newbuffer);
+      this.wavEncoder.encode(buffers);
 
     };
 
@@ -66,7 +66,7 @@ class MicRecorder {
    */
 
   downsampleBuffer(buffer, rate) {
-    let sampleRate = 41000
+    let sampleRate = 44100
     if (rate == sampleRate) {
       return buffer;
     }

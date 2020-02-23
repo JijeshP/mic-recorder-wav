@@ -5,7 +5,7 @@ class WavEncoder {
       bitRate: 128
     };
 
-    this.sampleRate = 16000;
+    this.sampleRate = 44100;
     this.numChannels = 1;
     this.numSamples = 0;
     this.dataViews = [];

@@ -37,7 +37,7 @@ var WavEncoder = function () {
       bitRate: 128
     };
 
-    this.sampleRate = 16000;
+    this.sampleRate = 44100;
     this.numChannels = 1;
     this.numSamples = 0;
     this.dataViews = [];
@@ -116,7 +116,9 @@ var WavEncoder = function () {
       this.setString(view, 36, 'data');
       view.setUint32(40, dataSize, true);
       this.dataViews.unshift(view);
-      var blob = new Blob(this.dataViews, { type: 'audio/wav' });
+      var blob = new Blob(this.dataViews, {
+        type: 'audio/wav'
+      });
       this.cleanup();
       return blob;
     }
@@ -181,6 +183,9 @@ var MicRecorder = function () {
         var buffers = [];
         buffers[0] = event.inputBuffer.getChannelData(0);
         // Send microphone data to LAME for MP3 encoding while recording.
+        var newbuffer = [];
+        // newbuffer[0] = this.downsampleBuffer(buffers[0], 16000)
+
         _this.wavEncoder.encode(buffers);
       };
 
@@ -189,12 +194,47 @@ var MicRecorder = function () {
       this.processor.connect(this.context.destination);
     }
   }, {
-    key: 'stop',
+    key: 'downsampleBuffer',
 
 
     /**
      * Disconnect microphone, processor and remove activeStream
      */
+
+    value: function downsampleBuffer(buffer, rate) {
+      var sampleRate = 44100;
+      if (rate == sampleRate) {
+        return buffer;
+      }
+      if (rate > sampleRate) {
+        throw "downsampling rate show be smaller than original sample rate";
+      }
+      var sampleRateRatio = sampleRate / rate;
+
+      var newLength = Math.round(buffer.length / sampleRateRatio);
+
+      var result = new Float32Array(newLength);
+      var offsetResult = 0;
+      var offsetBuffer = 0;
+      while (offsetResult < result.length) {
+        var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
+        // Use average value of skipped samples
+        var accum = 0,
+            count = 0;
+        for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+          accum += buffer[i];
+          count++;
+        }
+        result[offsetResult] = accum / count;
+        // Or you can simply get rid of the skipped samples:
+        // result[offsetResult] = buffer[nextOffsetBuffer];
+        offsetResult++;
+        offsetBuffer = nextOffsetBuffer;
+      }
+      return result;
+    }
+  }, {
+    key: 'stop',
     value: function stop() {
       if (this.processor && this.microphone) {
         // Clean up the Web Audio API resources.
@@ -229,15 +269,22 @@ var MicRecorder = function () {
       var _this2 = this;
 
       var AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.context = new AudioContext({ sampleRate: 16000 });
+      //{sampleRate: 16000}
+      this.context = new AudioContext();
       this.config.sampleRate = this.context.sampleRate;
 
       this.wavEncoder = new WavEncoder();
 
-      var audio = this.config.deviceId ? { deviceId: { exact: this.config.deviceId } } : true;
+      var audio = this.config.deviceId ? {
+        deviceId: {
+          exact: this.config.deviceId
+        }
+      } : true;
 
       return new Promise(function (resolve, reject) {
-        navigator.mediaDevices.getUserMedia({ audio: audio }).then(function (stream) {
+        navigator.mediaDevices.getUserMedia({
+          audio: audio
+        }).then(function (stream) {
           _this2.addMicrophoneListener(stream);
           resolve(stream);
         }).catch(function (err) {
